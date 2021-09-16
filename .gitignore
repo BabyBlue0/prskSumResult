@@ -1,0 +1,8 @@
+#ignore binary
+sumResult
+
+#ignore html of songs
+*.html
+
+#ignore images
+img/source/*
