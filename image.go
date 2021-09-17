@@ -7,13 +7,7 @@ import (
 	"image/png"
 	"os"
 	"time"
-	//online
 )
-
-type NumPos struct {
-	Num uint
-	Rec image.Rectangle
-}
 
 func getImageFromFilePath(filePath string) (image.Image, error) {
 	f, err := os.Open(filePath)
@@ -22,54 +16,53 @@ func getImageFromFilePath(filePath string) (image.Image, error) {
 	}
 	defer f.Close()
 
-	img, _, err := image.Decode(f)
+	imImg, _, err := image.Decode(f)
 	if err != nil {
 		return nil, err
 	}
-	return img, err
+	return imImg, err
 }
 
-func outputImage(filePath string, img image.Image) error {
+func outputImage(filePath string, imImg image.Image) error {
 	out, err := os.Create(filePath)
 	if err != nil {
 		return err
 	}
 	defer out.Close()
 
-	if err := png.Encode(out, img); err != nil {
+	if err := png.Encode(out, imImg); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func croppingImageToImage(img image.Image, pos image.Rectangle) image.Image {
+func croppingImageToImage(imImg image.Image, pos image.Rectangle) image.Image {
 	//cropping data from result
 	type SubImager interface {
 		SubImage(r image.Rectangle) image.Image
 	}
-	crpimg := img.(SubImager).SubImage(pos)
+	crpimg := imImg.(SubImager).SubImage(pos)
 	return crpimg.(image.Image)
 }
 
-func croppingImageToBytes(img image.Image, pos image.Rectangle) ([]byte, error) {
-	crpimg := croppingImageToImage(img, pos)
+func croppingImageToBytes(imImg image.Image, pos image.Rectangle) ([]byte, error) {
+	imCrpImg := croppingImageToImage(imImg, pos)
 	//image.Image to bytes.Buffer
 	buf := new(bytes.Buffer)
-	if err := png.Encode(buf, crpimg); err != nil {
+	if err := png.Encode(buf, imCrpImg); err != nil {
 		return nil, err
 	}
 
 	return buf.Bytes(), nil
 }
 
-func validateImagePos(img image.Image, pos PRSKPositionOfData) error {
+func validateImagePos(imImg image.Image, pos PRSKPositionOfData) error {
 	//checking file extend
 	//checking some positions of cropping
 	//checking file size
-	if img.Bounds().Dx() != int(pos.Width) ||
-		img.Bounds().Dy() != int(pos.Height) {
-		return fmt.Errorf("Image size is not same.\nImage: %vx%v, Pos:%vx%v", img.Bounds().Dx(), img.Bounds().Dy(), pos.Width, pos.Height)
+	if imImg.Bounds().Dx() != int(pos.Width) || imImg.Bounds().Dy() != int(pos.Height) {
+		return fmt.Errorf("Image size is not same.\nImage: %vx%v, Pos:%vx%v", imImg.Bounds().Dx(), imImg.Bounds().Dy(), pos.Width, pos.Height)
 	}
 
 	return nil

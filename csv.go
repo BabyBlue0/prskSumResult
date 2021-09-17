@@ -2,17 +2,16 @@ package main
 
 import (
 	"encoding/csv"
-	"fmt"
 	"os"
 )
 
-func writeCSV(filePath string, recodes []PRSKOutputFormatToCSV) error {
+func writeCSV(filePath string, records []PRSKOutputFormatToCSV) error {
 
-	if len(recodes) <= 0 {
+	if len(records) <= 0 {
 		return nil
 	}
 
-	titles := recodes[0].Titles()
+	titles := records[0].Titles()
 
 	file, err := os.Create(filePath)
 	if err != nil {
@@ -26,7 +25,7 @@ func writeCSV(filePath string, recodes []PRSKOutputFormatToCSV) error {
 	//write title
 	cw.Write(titles)
 
-	for _, ofcsv := range recodes {
+	for _, ofcsv := range records {
 		ofmap := ofcsv.ToMap()
 		rec := []string{}
 		for _, t := range titles {
@@ -34,8 +33,7 @@ func writeCSV(filePath string, recodes []PRSKOutputFormatToCSV) error {
 		}
 
 		if err := cw.Write(rec); err != nil {
-			fmt.Println(err)
-			break
+			return err
 		}
 	}
 

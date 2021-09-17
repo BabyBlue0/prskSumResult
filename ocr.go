@@ -8,32 +8,32 @@ import (
 	"github.com/otiai10/gosseract"
 )
 
-func extractTextFromBytes(image_byte []byte) (string, error) {
+func extractTextFromBytes(byteImage []byte) (string, error) {
 	client := gosseract.NewClient()
 	defer client.Close()
 
 	client.SetLanguage("jpn", "eng")
 	client.Trim = true
-	client.SetImageFromBytes(image_byte)
+	client.SetImageFromBytes(byteImage)
 
 	text, err := client.Text()
 	return text, err
 }
 
-func extractNumFromBytes(image_byte []byte) (string, error) {
+func extractNumFromBytes(byteImage []byte) (string, error) {
 	client := gosseract.NewClient()
 	defer client.Close()
 
 	client.SetLanguage("eng")
 	client.SetWhitelist("0123456789")
-	client.SetImageFromBytes(image_byte)
+	client.SetImageFromBytes(byteImage)
 
 	text, err := client.Text()
 	return text, err
 }
 
-func getTextFromImageByOCR(img image.Image, rec image.Rectangle) (string, error) {
-	buf, err := croppingImageToBytes(img, rec)
+func getTextFromImageByOCR(imImg image.Image, rec image.Rectangle) (string, error) {
+	buf, err := croppingImageToBytes(imImg, rec)
 	if err != nil {
 		return "", err
 	}
@@ -45,8 +45,8 @@ func getTextFromImageByOCR(img image.Image, rec image.Rectangle) (string, error)
 	return strings.ReplaceAll(text, " ", ""), nil
 }
 
-func getNumFromImageByOCR(img image.Image, rec image.Rectangle) (uint, error) {
-	buf, err := croppingImageToBytes(img, rec)
+func getNumFromImageByOCR(imImg image.Image, rec image.Rectangle) (uint, error) {
+	buf, err := croppingImageToBytes(imImg, rec)
 	if err != nil {
 		return 0, err
 	}

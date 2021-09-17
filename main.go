@@ -6,10 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	//"io/ioutil"
 	"path"
 	"time"
-	//online
 )
 
 func getPathOfImages(dir string) ([]string, error) {
@@ -53,44 +51,37 @@ func main() {
 	}
 
 	//Get All image path in "img/source" directory
-	impaths, err := getPathOfImages("img/source")
+	imagePaths, err := getPathOfImages("img/source")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
 	records := []PRSKOutputFormatToCSV{}
-	for _, ip := range impaths {
-		img, err := getImageFromFilePath(ip)
+	for _, ip := range imagePaths {
+		imImg, err := getImageFromFilePath(ip)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 
 		//cheking consistency of image and pos
-		if err := validateImagePos(img, pos); err != nil {
+		if err := validateImagePos(imImg, pos); err != nil {
 			fmt.Println(err)
 			return
 		}
 
 		//Todo getXxxxをgorutineによって並列実行
 		score := PRSKScore{}
-		score.Name, _ = getTextFromImageByOCR(img, pos.Name)
-		score.Level, _ = getTextFromImageByOCR(img, pos.Level)
-		score.Score, _ = getScore(img, pos.Score)
-		score.Combo, _ = getCombo(img, pos.Combo)
-		score.Perfect, _ = getDetail(img, pos.Perfect)
-		score.Great, _ = getDetail(img, pos.Great)
-		score.Good, _ = getDetail(img, pos.Good)
-		score.Bad, _ = getDetail(img, pos.Bad)
-		score.Miss, _ = getDetail(img, pos.Miss)
-
-		//Get timestamp
-		imageInfo, err := os.Stat(ip)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
+		score.Name, _ = getTextFromImageByOCR(imImg, pos.Name)
+		score.Level, _ = getTextFromImageByOCR(imImg, pos.Level)
+		score.Score, _ = getScore(imImg, pos.Score)
+		score.Combo, _ = getCombo(imImg, pos.Combo)
+		score.Perfect, _ = getDetail(imImg, pos.Perfect)
+		score.Great, _ = getDetail(imImg, pos.Great)
+		score.Good, _ = getDetail(imImg, pos.Good)
+		score.Bad, _ = getDetail(imImg, pos.Bad)
+		score.Miss, _ = getDetail(imImg, pos.Miss)
 
 		//calc edit distance and decided title by ed
 		fmt.Printf("IMG: %v\n", ip)
@@ -103,6 +94,12 @@ func main() {
 		score.Name = title
 
 		//extract timestamp
+		imageInfo, err := os.Stat(ip)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
 		ocsv := PRSKOutputFormatToCSV{Score: score, Timestamp: imageInfo.ModTime()}
 		if dt, err := getTimestampByExif(ip); err != nil {
 			fmt.Println(err)

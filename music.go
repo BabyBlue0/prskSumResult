@@ -4,11 +4,8 @@ import (
 	"math"
 	"strings"
 
-	//"fmt"
 	"io/ioutil"
-	//"os"
 
-	//online
 	"github.com/PuerkitoBio/goquery"
 )
 

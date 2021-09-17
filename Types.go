@@ -79,3 +79,8 @@ type PRSKPositionOfData struct {
 	Bad     image.Rectangle
 	Miss    image.Rectangle
 }
+
+type NumPos struct {
+	Num uint
+	Rec image.Rectangle
+}
