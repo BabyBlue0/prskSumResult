@@ -8,6 +8,53 @@ import (
 	"gocv.io/x/gocv"
 )
 
+func execTemplateMatching(imImg image.Image, rec image.Rectangle, templatePaths map[string]string) (string, error) {
+	//give some room
+	rec = image.Rect(rec.Min.X-10, rec.Min.Y-10, rec.Max.X+10, rec.Max.Y+10)
+
+	cvFullImg, err := gocv.ImageToMatRGB(imImg)
+	if err != nil {
+		return "", err
+	}
+	defer cvFullImg.Close()
+
+	//cropping image
+	cvImgOrig := cvFullImg.Region(rec)
+
+	cvImgGray := gocv.NewMat()
+	gocv.CvtColor(cvImgOrig, &cvImgGray, gocv.ColorBGRToGray)
+	defer cvImgGray.Close()
+	mask := gocv.NewMat()
+	defer mask.Close()
+
+	result := map[string]float32{}
+
+	for itm, tp := range templatePaths {
+		cvTmp := gocv.IMRead(tp, gocv.IMReadGrayScale)
+		defer cvTmp.Close()
+
+		// matching template
+		res := gocv.NewMat()
+		defer res.Close()
+		gocv.MatchTemplate(cvImgGray, cvTmp, &res, 3, mask)
+
+		//get result
+		_, maxC, _, _ := gocv.MinMaxLoc(res)
+
+		result[itm] = float32(maxC)
+	}
+
+	ret := ""
+	maxConf := float32(0)
+	for itm, conf := range result {
+		if maxConf < conf {
+			ret = itm
+			maxConf = conf
+		}
+	}
+	return ret, nil
+}
+
 func extractNumFromImageByTM(imImg image.Image, rec image.Rectangle, templatePaths []string, confidence float32) (uint, error) {
 	//give some room
 	rec = image.Rect(rec.Min.X-10, rec.Min.Y-10, rec.Max.X+10, rec.Max.Y+10)
@@ -116,4 +163,22 @@ func getDetail(imImg image.Image, rec image.Rectangle) (uint, error) {
 	}
 
 	return num, nil
+}
+
+func getLevel(imImg image.Image, rec image.Rectangle) (string, error) {
+	tmps := map[string]string{}
+	levels := []string{
+		//"EASY", "NORMAL", "HARD", "EXPERT", "MASTER",
+		"EXPERT", "MASTER",
+	}
+	for _, lev := range levels {
+		tmps[lev] = fmt.Sprintf("img/tmp/tmp_level_%v.png", lev)
+	}
+
+	lv, err := execTemplateMatching(imImg, rec, tmps)
+	if err != nil {
+		return "", err
+	}
+
+	return lv, nil
 }

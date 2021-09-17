@@ -5,13 +5,19 @@ import (
 	"image"
 	"io/ioutil"
 	"os"
+	"sync"
 
 	"path"
 	"time"
 )
 
+//Global variable
+var globalAllSongs []string
+var globalRecords []PRSKOutputFormatToCSV
+
 func getPathOfImages(dir string) ([]string, error) {
 	poi := []string{}
+	///*
 	fis, err := ioutil.ReadDir(dir)
 	if err != nil {
 		return nil, err
@@ -23,8 +29,54 @@ func getPathOfImages(dir string) ([]string, error) {
 			poi = append(poi, p)
 		}
 	}
-
+	//*/
+	//poi = append(poi, "img/source/result_offline.png")
+	//poi = append(poi, "img/source/result_online.png")
 	return poi, nil
+}
+
+func getPRSKScores(imagePath string, pos PRSKPositionOfData) (PRSKScore, error) {
+	imImg, err := getImageFromFilePath(imagePath)
+	if err != nil {
+		return PRSKScore{}, err
+	}
+	fmt.Printf("%v: load image\n", imagePath)
+
+	//cheking consistency of image and pos
+	//if err := validateImagePos(imImg, pos); err != nil {
+	//	return PRSKScore{}, err
+	//}
+
+	//Todo getXxxxをgorutineによって並列実行
+	score := PRSKScore{}
+	//score.Name, _ = getTextFromImageByOCRSpecifyngWhitelist(imImg, pos.Name, strings.Join(globalAllSongs, ""))
+	score.Name, _ = getTextFromImageByOCR(imImg, pos.Name)
+	fmt.Printf("%v: get name\n", imagePath)
+	score.Level, _ = getLevel(imImg, pos.Level)
+	fmt.Printf("%v: get level\n", imagePath)
+	score.Score, _ = getScore(imImg, pos.Score)
+	fmt.Printf("%v: get score\n", imagePath)
+	score.Combo, _ = getCombo(imImg, pos.Combo)
+	fmt.Printf("%v: get combo\n", imagePath)
+	score.Perfect, _ = getDetail(imImg, pos.Perfect)
+	fmt.Printf("%v: get perfect\n", imagePath)
+	score.Great, _ = getDetail(imImg, pos.Great)
+	fmt.Printf("%v: get great\n", imagePath)
+	score.Good, _ = getDetail(imImg, pos.Good)
+	fmt.Printf("%v: get good\n", imagePath)
+	score.Bad, _ = getDetail(imImg, pos.Bad)
+	fmt.Printf("%v: get bad\n", imagePath)
+	score.Miss, _ = getDetail(imImg, pos.Miss)
+	fmt.Printf("%v: get miss\n", imagePath)
+
+	//calc edit distance and decided title by ed
+	title, ed, _ := searchStringWithED(score.Name, globalAllSongs)
+	if ed > 5 {
+		return PRSKScore{}, fmt.Errorf("Too high edit distance!!!\nsocre.Name: %v,\tED: %v\n", score.Name, ed)
+	}
+	score.Name = title
+	fmt.Printf("%v: get title\n", imagePath)
+	return score, nil
 }
 
 func main() {
@@ -49,6 +101,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
+	globalAllSongs = allSongs
 
 	//Get All image path in "img/source" directory
 	imagePaths, err := getPathOfImages("img/source")
@@ -57,61 +110,54 @@ func main() {
 		return
 	}
 
-	records := []PRSKOutputFormatToCSV{}
+	var wg sync.WaitGroup
+	mutex := sync.Mutex{}
+	limit := 3
+	slots := make(chan struct{}, limit)
+	wg.Add(len(imagePaths))
 	for _, ip := range imagePaths {
-		imImg, err := getImageFromFilePath(ip)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
+		//to avoid exec multi
+		ip := ip
+		pos := pos
 
-		//cheking consistency of image and pos
-		if err := validateImagePos(imImg, pos); err != nil {
-			fmt.Println(err)
-			return
-		}
+		slots <- struct{}{}
+		go func(ip string, pos PRSKPositionOfData) {
+      defer func(){ <-slots }()
+			defer wg.Done()
+			fmt.Printf("%v: Start process...\n", ip)
+			score, err := getPRSKScores(ip, pos)
+			if err != nil {
+				fmt.Printf("%v: %v\n", ip, err)
+				return
+			}
 
-		//Todo getXxxxをgorutineによって並列実行
-		score := PRSKScore{}
-		score.Name, _ = getTextFromImageByOCR(imImg, pos.Name)
-		score.Level, _ = getTextFromImageByOCR(imImg, pos.Level)
-		score.Score, _ = getScore(imImg, pos.Score)
-		score.Combo, _ = getCombo(imImg, pos.Combo)
-		score.Perfect, _ = getDetail(imImg, pos.Perfect)
-		score.Great, _ = getDetail(imImg, pos.Great)
-		score.Good, _ = getDetail(imImg, pos.Good)
-		score.Bad, _ = getDetail(imImg, pos.Bad)
-		score.Miss, _ = getDetail(imImg, pos.Miss)
+			//extract timestamp
+			imageInfo, err := os.Stat(ip)
+			if err != nil {
+				fmt.Printf("%v: %v\n", ip, err)
+				return
+			}
 
-		//calc edit distance and decided title by ed
-		fmt.Printf("IMG: %v\n", ip)
-		title, ed, _ := searchStringWithED(score.Name, allSongs)
-		if ed > 5 {
-			fmt.Println("Too high edit distance!!!")
-			fmt.Printf("socre.Name: %v,\tED: %v\n", score.Name, ed)
-			continue
-		}
-		score.Name = title
+			ocsv := PRSKOutputFormatToCSV{Score: score, Timestamp: imageInfo.ModTime()}
+			if dt, err := getTimestampByExif(ip); err != nil {
+				ocsv.Timestamp = time.Time{}
+			} else {
+				ocsv.Timestamp = dt
+			}
+			ocsv.FName = path.Base(ip)
 
-		//extract timestamp
-		imageInfo, err := os.Stat(ip)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
+			//append records of csv
+			mutex.Lock()
+			globalRecords = append(globalRecords, ocsv)
+			mutex.Unlock()
 
-		ocsv := PRSKOutputFormatToCSV{Score: score, Timestamp: imageInfo.ModTime()}
-		if dt, err := getTimestampByExif(ip); err != nil {
-			fmt.Println(err)
-			ocsv.Timestamp = time.Time{}
-		} else {
-			ocsv.Timestamp = dt
-		}
-		ocsv.FName = path.Base(ip)
-
-		//append records of csv
-		records = append(records, ocsv)
+			fmt.Printf("%v: done\n", ip)
+			fmt.Printf("%v: %v\n", ip, ocsv)
+		}(ip, pos)
 	}
+	wg.Wait()
 
-	writeCSV("output.csv", records)
+	writeCSV("output.csv", globalRecords)
+	fmt.Printf("Write in csv file.\n")
+	fmt.Printf("Success!\n")
 }

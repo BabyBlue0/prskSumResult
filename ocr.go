@@ -9,11 +9,17 @@ import (
 )
 
 func extractTextFromBytes(byteImage []byte) (string, error) {
+	return extractTextFromBytesSpecifyingWhitelist(byteImage, "")
+}
+func extractTextFromBytesSpecifyingWhitelist(byteImage []byte, whiteList string) (string, error) {
 	client := gosseract.NewClient()
 	defer client.Close()
 
 	client.SetLanguage("jpn", "eng")
 	client.Trim = true
+	if whiteList != "" {
+		client.SetWhitelist(whiteList)
+	}
 	client.SetImageFromBytes(byteImage)
 
 	text, err := client.Text()
@@ -33,11 +39,15 @@ func extractNumFromBytes(byteImage []byte) (string, error) {
 }
 
 func getTextFromImageByOCR(imImg image.Image, rec image.Rectangle) (string, error) {
+	return getTextFromImageByOCRSpecifyngWhitelist(imImg, rec, "")
+}
+
+func getTextFromImageByOCRSpecifyngWhitelist(imImg image.Image, rec image.Rectangle, whiteList string) (string, error) {
 	buf, err := croppingImageToBytes(imImg, rec)
 	if err != nil {
 		return "", err
 	}
-	text, err := extractTextFromBytes(buf)
+	text, err := extractTextFromBytesSpecifyingWhitelist(buf, whiteList)
 	if err != nil {
 		return "", err
 	}
