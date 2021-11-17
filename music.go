@@ -2,12 +2,21 @@ package main
 
 import (
 	"math"
+	"strconv"
 	"strings"
-
-	"io/ioutil"
 
 	"github.com/PuerkitoBio/goquery"
 )
+
+type PRSKSong struct {
+	No      int
+	Default string
+	Title   string
+	Unit    string
+	ComboEx int
+	ComboM  int
+	Time    string
+}
 
 func calcEditDistance(s1, s2 string) int {
 	ns1 := strings.ReplaceAll(s1, " ", "")
@@ -44,25 +53,25 @@ func calcEditDistance(s1, s2 string) int {
 	return ed[len(r2)][len(r1)]
 }
 
-func getAllSongTitle() ([]string, error) {
-	songs := []string{}
+func getAllSongTitle() ([]PRSKSong, error) {
+	songs := []PRSKSong{}
 
 	//プロジェクトセカイ攻略Wikiからスクレイピングする
 
 	//When the test, It don't Scraping
-	/*
-	  urlPjsekaiwiki := "https://pjsekai.com/"
-	  docHome, err := goquery.NewDocument(urlPjsekaiwiki)
-	  if err != nil {
-	    return nil, err
-	  }
+	///*
+	urlPjsekaiwiki := "https://pjsekai.com/"
+	docHome, err := goquery.NewDocument(urlPjsekaiwiki)
+	if err != nil {
+		return nil, err
+	}
 
-	  selAllSongs := docHome.Find("a[title=\"収録楽曲\"]").First()
-	  page,_ := selAllSongs.Attr("href")
-	  urlAllSongs := urlPjsekaiwiki + page[2:]
+	selAllSongs := docHome.Find("a[title=\"収録楽曲\"]").First()
+	page, _ := selAllSongs.Attr("href")
+	urlAllSongs := urlPjsekaiwiki + page[2:]
 
-	  docSongs, err := goquery.NewDocument(urlAllSongs)
-	*/
+	docSongs, err := goquery.NewDocument(urlAllSongs)
+	//*/
 
 	///*** ON DEV ***
 	//data write
@@ -70,17 +79,27 @@ func getAllSongTitle() ([]string, error) {
 	//ioutil.WriteFile("./prjsekaiSONGS.html", []byte(res), os.ModePerm)
 
 	//data read
-	fiSongs, _ := ioutil.ReadFile("./prjsekaiSONGS.html")
-	srSongs := strings.NewReader(string(fiSongs))
-	docSongs, err := goquery.NewDocumentFromReader(srSongs)
+	//fiSongs, _ := ioutil.ReadFile("./prjsekaiSONGS.html")
+	//srSongs := strings.NewReader(string(fiSongs))
+	//docSongs, err := goquery.NewDocumentFromReader(srSongs)
 	//****************/
 
 	if err != nil {
 		return nil, err
 	}
 
-	docSongs.Find("table#sortable_table1 > tbody > tr > td:nth-child(4)").Each(func(_ int, s *goquery.Selection) {
-		songs = append(songs, s.Text())
+	//docSongs.Find("table#sortable_table1 > tbody > tr > td:nth-child(4)").Each(func(_ int, s *goquery.Selection) {
+	docSongs.Find("table#sortable_table1 > tbody > tr").Each(func(_ int, s *goquery.Selection) {
+		song := PRSKSong{}
+		song.No, _ = strconv.Atoi(s.Find("td:nth-child(1)").Text())
+		song.Default = s.Find("td:nth-child(2)").Text()
+		song.Title = s.Find("td:nth-child(4)").Text()
+		song.Unit = s.Find("td:nth-child(5)").Text()
+		song.ComboEx, _ = strconv.Atoi(s.Find("td:nth-child(11)").Text())
+		song.ComboM, _ = strconv.Atoi(s.Find("td:nth-child(12)").Text())
+		song.Time = s.Find("td:nth-child(13)").Text()
+
+		songs = append(songs, song)
 	})
 
 	return songs, nil

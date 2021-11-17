@@ -12,7 +12,7 @@ import (
 )
 
 //Global variable
-var globalAllSongs []string
+var globalAllSongs []PRSKSong
 var globalRecords []PRSKOutputFormatToCSV
 
 func getPathOfImages(dir string) ([]string, error) {
@@ -49,7 +49,6 @@ func getPRSKScores(imagePath string, pos PRSKPositionOfData) (PRSKScore, error) 
 
 	//Todo getXxxxをgorutineによって並列実行
 	score := PRSKScore{}
-	//score.Name, _ = getTextFromImageByOCRSpecifyngWhitelist(imImg, pos.Name, strings.Join(globalAllSongs, ""))
 	score.Name, _ = getTextFromImageByOCR(imImg, pos.Name)
 	fmt.Printf("%v: get name\n", imagePath)
 	score.Level, _ = getLevel(imImg, pos.Level)
@@ -70,7 +69,11 @@ func getPRSKScores(imagePath string, pos PRSKPositionOfData) (PRSKScore, error) 
 	fmt.Printf("%v: get miss\n", imagePath)
 
 	//calc edit distance and decided title by ed
-	title, ed, _ := searchStringWithED(score.Name, globalAllSongs)
+	var allsongs []string
+	for _,s := range globalAllSongs {
+		allsongs = append( allsongs, s.Title )
+	}
+	title, ed, _ := searchStringWithED(score.Name, allsongs )
 	if ed > 5 {
 		return PRSKScore{}, fmt.Errorf("Too high edit distance!!!\nsocre.Name: %v,\tED: %v\n", score.Name, ed)
 	}
@@ -122,7 +125,7 @@ func main() {
 
 		slots <- struct{}{}
 		go func(ip string, pos PRSKPositionOfData) {
-      defer func(){ <-slots }()
+			defer func() { <-slots }()
 			defer wg.Done()
 			fmt.Printf("%v: Start process...\n", ip)
 			score, err := getPRSKScores(ip, pos)
