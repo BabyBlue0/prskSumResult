@@ -119,7 +119,7 @@ func main() {
 
 	var wg sync.WaitGroup
 	mutex := sync.Mutex{}
-	limit := 7
+	limit := 5
 	slots := make(chan struct{}, limit)
 	wg.Add(len(imagePaths))
 	for _, ip := range imagePaths {
@@ -131,7 +131,7 @@ func main() {
 		go func(ip string, pos PRSKPositionOfData) {
 			defer func() { <-slots }()
 			defer wg.Done()
-			fmt.Printf("%v: Start process...\n", ip)
+			fmt.Printf("%v: Start Processing...\n", ip)
 
 			score, err := getPRSKScores(ip, pos)
 			if err != nil {

@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/otiai10/gosseract"
+	"github.com/otiai10/gosseract/v2"
 )
 
 func extractTextFromBytes(byteImage *[]byte) (string, error) {

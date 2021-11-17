@@ -7,6 +7,8 @@ import (
 	"image/png"
 	"os"
 	"time"
+
+	"github.com/dsoprea/go-exif"
 )
 
 func getImageFromFilePath(filePath string) (image.Image, error) {
@@ -69,22 +71,51 @@ func validateImagePos(imImg image.Image, pos PRSKPositionOfData) error {
 }
 
 func getTimestampByExif(imgPath string) (time.Time, error) {
-	//file, err := os.Open(imgPath)
-	//if err != nil {
-	//  fmt.Println("image.go: error in os.Open")
-	//  return time.Time{}, err
-	//}
+	rawExif, err := exif.SearchFileAndExtractExif(imgPath)
+	if err != nil {
+		return time.Time{}, err
+	}
 
-	//x, err := exif.Decode(file)
-	//if err != nil {
-	//  fmt.Println("image.go: error in exif.Decode")
-	//  return time.Time{}, err
-	//}
+	im := exif.NewIfdMapping()
+	err = exif.LoadStandardIfds(im)
+	if err != nil {
+		return time.Time{}, err
+	}
+	ti := exif.NewTagIndex()
 
-	//dt, err := x.DateTime()
-	//if err != nil {
-	//  fmt.Println("image.go: error in x.DateTime")
-	//  return time.Time{}, err
-	//}
-	return time.Time{}, nil
+	_, index, err := exif.Collect(im, ti, rawExif)
+	if err != nil {
+		return time.Time{}, err
+	}
+	//index.RootIfd.PrintTagTree(true)
+
+	rootIfd := index.RootIfd
+	exifIfd, err := exif.FindIfdFromRootIfd(rootIfd, "IFD/Exif")
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	tagName := "DateTimeOriginal"
+	results, err := exifIfd.FindTagWithName(tagName)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	if len(results) != 1 {
+		return time.Time{}, fmt.Errorf("There wasn't exactly one result")
+	}
+
+	ite := results[0]
+
+	valueRaw, err := index.RootIfd.TagValue(ite)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	value := valueRaw.(string)
+	dt, err := exif.ParseExifFullTimestamp(value)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return dt, nil
 }
