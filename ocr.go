@@ -8,10 +8,10 @@ import (
 	"github.com/otiai10/gosseract"
 )
 
-func extractTextFromBytes(byteImage []byte) (string, error) {
+func extractTextFromBytes(byteImage *[]byte) (string, error) {
 	return extractTextFromBytesSpecifyingWhitelist(byteImage, "")
 }
-func extractTextFromBytesSpecifyingWhitelist(byteImage []byte, whiteList string) (string, error) {
+func extractTextFromBytesSpecifyingWhitelist(byteImage *[]byte, whiteList string) (string, error) {
 	client := gosseract.NewClient()
 	defer client.Close()
 
@@ -20,34 +20,34 @@ func extractTextFromBytesSpecifyingWhitelist(byteImage []byte, whiteList string)
 	if whiteList != "" {
 		client.SetWhitelist(whiteList)
 	}
-	client.SetImageFromBytes(byteImage)
+	client.SetImageFromBytes(*byteImage)
 
 	text, err := client.Text()
 	return text, err
 }
 
-func extractNumFromBytes(byteImage []byte) (string, error) {
+func extractNumFromBytes(byteImage *[]byte) (string, error) {
 	client := gosseract.NewClient()
 	defer client.Close()
 
 	client.SetLanguage("eng")
 	client.SetWhitelist("0123456789")
-	client.SetImageFromBytes(byteImage)
+	client.SetImageFromBytes(*byteImage)
 
 	text, err := client.Text()
 	return text, err
 }
 
-func getTextFromImageByOCR(imImg image.Image, rec image.Rectangle) (string, error) {
+func getTextFromImageByOCR(imImg *image.Image, rec image.Rectangle) (string, error) {
 	return getTextFromImageByOCRSpecifyngWhitelist(imImg, rec, "")
 }
 
-func getTextFromImageByOCRSpecifyngWhitelist(imImg image.Image, rec image.Rectangle, whiteList string) (string, error) {
+func getTextFromImageByOCRSpecifyngWhitelist(imImg *image.Image, rec image.Rectangle, whiteList string) (string, error) {
 	buf, err := croppingImageToBytes(imImg, rec)
 	if err != nil {
 		return "", err
 	}
-	text, err := extractTextFromBytesSpecifyingWhitelist(buf, whiteList)
+	text, err := extractTextFromBytesSpecifyingWhitelist(&buf, whiteList)
 	if err != nil {
 		return "", err
 	}
@@ -55,12 +55,12 @@ func getTextFromImageByOCRSpecifyngWhitelist(imImg image.Image, rec image.Rectan
 	return strings.ReplaceAll(text, " ", ""), nil
 }
 
-func getNumFromImageByOCR(imImg image.Image, rec image.Rectangle) (uint, error) {
+func getNumFromImageByOCR(imImg *image.Image, rec image.Rectangle) (uint, error) {
 	buf, err := croppingImageToBytes(imImg, rec)
 	if err != nil {
 		return 0, err
 	}
-	text, err := extractNumFromBytes(buf)
+	text, err := extractNumFromBytes(&buf)
 	if err != nil {
 		return 0, err
 	}

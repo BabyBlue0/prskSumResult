@@ -8,11 +8,11 @@ import (
 	"gocv.io/x/gocv"
 )
 
-func execTemplateMatching(imImg image.Image, rec image.Rectangle, templatePaths map[string]string) (string, error) {
+func execTemplateMatching(imImg *image.Image, rec image.Rectangle, templatePaths map[string]string) (string, error) {
 	//give some room
 	rec = image.Rect(rec.Min.X-10, rec.Min.Y-10, rec.Max.X+10, rec.Max.Y+10)
 
-	cvFullImg, err := gocv.ImageToMatRGB(imImg)
+	cvFullImg, err := gocv.ImageToMatRGB(*imImg)
 	if err != nil {
 		return "", err
 	}
@@ -55,11 +55,11 @@ func execTemplateMatching(imImg image.Image, rec image.Rectangle, templatePaths 
 	return ret, nil
 }
 
-func extractNumFromImageByTM(imImg image.Image, rec image.Rectangle, templatePaths []string, confidence float32) (uint, error) {
+func extractNumFromImageByTM(imImg *image.Image, rec image.Rectangle, templatePaths []string, confidence float32) (uint, error) {
 	//give some room
 	rec = image.Rect(rec.Min.X-10, rec.Min.Y-10, rec.Max.X+10, rec.Max.Y+10)
 
-	cvFullImg, err := gocv.ImageToMatRGB(imImg)
+	cvFullImg, err := gocv.ImageToMatRGB(*imImg)
 	if err != nil {
 		return 0, err
 	}
@@ -123,7 +123,7 @@ func extractNumFromImageByTM(imImg image.Image, rec image.Rectangle, templatePat
 	return retnum, nil
 }
 
-func getScore(imImg image.Image, rec image.Rectangle) (uint, error) {
+func getScore(imImg *image.Image, rec image.Rectangle) (uint, error) {
 	tmps := []string{}
 	for i := 0; i <= 9; i++ {
 		tmps = append(tmps, fmt.Sprintf("img/tmp/tmp_score_%d.png", i))
@@ -137,7 +137,7 @@ func getScore(imImg image.Image, rec image.Rectangle) (uint, error) {
 	return num, nil
 }
 
-func getCombo(imImg image.Image, rec image.Rectangle) (uint, error) {
+func getCombo(imImg *image.Image, rec image.Rectangle) (uint, error) {
 	tmps := []string{}
 	for i := 0; i <= 9; i++ {
 		tmps = append(tmps, fmt.Sprintf("img/tmp/tmp_combo_%d.png", i))
@@ -151,7 +151,7 @@ func getCombo(imImg image.Image, rec image.Rectangle) (uint, error) {
 	return num, nil
 }
 
-func getDetail(imImg image.Image, rec image.Rectangle) (uint, error) {
+func getDetail(imImg *image.Image, rec image.Rectangle) (uint, error) {
 	tmps := []string{}
 	for i := 0; i <= 9; i++ {
 		tmps = append(tmps, fmt.Sprintf("img/tmp/tmp_detail_%d.png", i))
@@ -165,7 +165,7 @@ func getDetail(imImg image.Image, rec image.Rectangle) (uint, error) {
 	return num, nil
 }
 
-func getLevel(imImg image.Image, rec image.Rectangle) (string, error) {
+func getLevel(imImg *image.Image, rec image.Rectangle) (string, error) {
 	tmps := map[string]string{}
 	levels := []string{
 		//"EASY", "NORMAL", "HARD", "EXPERT", "MASTER",

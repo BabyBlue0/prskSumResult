@@ -37,16 +37,16 @@ func outputImage(filePath string, imImg image.Image) error {
 	return nil
 }
 
-func croppingImageToImage(imImg image.Image, pos image.Rectangle) image.Image {
+func croppingImageToImage(imImg *image.Image, pos image.Rectangle) image.Image {
 	//cropping data from result
 	type SubImager interface {
 		SubImage(r image.Rectangle) image.Image
 	}
-	crpimg := imImg.(SubImager).SubImage(pos)
+	crpimg := (*imImg).(SubImager).SubImage(pos)
 	return crpimg.(image.Image)
 }
 
-func croppingImageToBytes(imImg image.Image, pos image.Rectangle) ([]byte, error) {
+func croppingImageToBytes(imImg *image.Image, pos image.Rectangle) ([]byte, error) {
 	imCrpImg := croppingImageToImage(imImg, pos)
 	//image.Image to bytes.Buffer
 	buf := new(bytes.Buffer)

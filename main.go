@@ -40,7 +40,7 @@ func getPRSKScores(imagePath string, pos PRSKPositionOfData) (PRSKScore, error) 
 	if err != nil {
 		return PRSKScore{}, err
 	}
-	fmt.Printf("%v: load image\n", imagePath)
+	fmt.Printf("%v: LOAD Image\n", imagePath)
 
 	//cheking consistency of image and pos
 	//if err := validateImagePos(imImg, pos); err != nil {
@@ -49,36 +49,36 @@ func getPRSKScores(imagePath string, pos PRSKPositionOfData) (PRSKScore, error) 
 
 	//Todo getXxxxをgorutineによって並列実行
 	score := PRSKScore{}
-	score.Name, _ = getTextFromImageByOCR(imImg, pos.Name)
-	fmt.Printf("%v: get name\n", imagePath)
-	score.Level, _ = getLevel(imImg, pos.Level)
-	fmt.Printf("%v: get level\n", imagePath)
-	score.Score, _ = getScore(imImg, pos.Score)
-	fmt.Printf("%v: get score\n", imagePath)
-	score.Combo, _ = getCombo(imImg, pos.Combo)
-	fmt.Printf("%v: get combo\n", imagePath)
-	score.Perfect, _ = getDetail(imImg, pos.Perfect)
-	fmt.Printf("%v: get perfect\n", imagePath)
-	score.Great, _ = getDetail(imImg, pos.Great)
-	fmt.Printf("%v: get great\n", imagePath)
-	score.Good, _ = getDetail(imImg, pos.Good)
-	fmt.Printf("%v: get good\n", imagePath)
-	score.Bad, _ = getDetail(imImg, pos.Bad)
-	fmt.Printf("%v: get bad\n", imagePath)
-	score.Miss, _ = getDetail(imImg, pos.Miss)
-	fmt.Printf("%v: get miss\n", imagePath)
+	score.Name, _ = getTextFromImageByOCR(&imImg, pos.Name)
+	//fmt.Printf("%v: get name\n", imagePath)
+	score.Level, _ = getLevel(&imImg, pos.Level)
+	//fmt.Printf("%v: get level\n", imagePath)
+	score.Score, _ = getScore(&imImg, pos.Score)
+	//fmt.Printf("%v: get score\n", imagePath)
+	score.Combo, _ = getCombo(&imImg, pos.Combo)
+	//fmt.Printf("%v: get combo\n", imagePath)
+	score.Perfect, _ = getDetail(&imImg, pos.Perfect)
+	//fmt.Printf("%v: get perfect\n", imagePath)
+	score.Great, _ = getDetail(&imImg, pos.Great)
+	//fmt.Printf("%v: get great\n", imagePath)
+	score.Good, _ = getDetail(&imImg, pos.Good)
+	//fmt.Printf("%v: get good\n", imagePath)
+	score.Bad, _ = getDetail(&imImg, pos.Bad)
+	//fmt.Printf("%v: get bad\n", imagePath)
+	score.Miss, _ = getDetail(&imImg, pos.Miss)
+	//fmt.Printf("%v: get miss\n", imagePath)
 
 	//calc edit distance and decided title by ed
 	var allsongs []string
-	for _,s := range globalAllSongs {
-		allsongs = append( allsongs, s.Title )
+	for _, s := range globalAllSongs {
+		allsongs = append(allsongs, s.Title)
 	}
-	title, ed, _ := searchStringWithED(score.Name, allsongs )
+	title, ed, _ := searchStringWithED(score.Name, allsongs)
 	if ed > 5 {
 		return PRSKScore{}, fmt.Errorf("Too high edit distance!!!\nsocre.Name: %v,\tED: %v\n", score.Name, ed)
 	}
 	score.Name = title
-	fmt.Printf("%v: get title\n", imagePath)
+	//fmt.Printf("%v: get title\n", imagePath)
 	return score, nil
 }
 
@@ -98,7 +98,10 @@ func main() {
 		Miss:    image.Rect(1120, 1172, 1240, 1212),
 	}
 
+	var failedFiles []string
+
 	//Get all songs by web scraping
+	fmt.Println("Getting all title of songs...")
 	allSongs, err := getAllSongTitle()
 	if err != nil {
 		fmt.Println(err)
@@ -107,6 +110,7 @@ func main() {
 	globalAllSongs = allSongs
 
 	//Get All image path in "img/source" directory
+	fmt.Println("Searching image files...")
 	imagePaths, err := getPathOfImages("img/source")
 	if err != nil {
 		fmt.Println(err)
@@ -115,7 +119,7 @@ func main() {
 
 	var wg sync.WaitGroup
 	mutex := sync.Mutex{}
-	limit := 3
+	limit := 7
 	slots := make(chan struct{}, limit)
 	wg.Add(len(imagePaths))
 	for _, ip := range imagePaths {
@@ -128,9 +132,11 @@ func main() {
 			defer func() { <-slots }()
 			defer wg.Done()
 			fmt.Printf("%v: Start process...\n", ip)
+
 			score, err := getPRSKScores(ip, pos)
 			if err != nil {
 				fmt.Printf("%v: %v\n", ip, err)
+				failedFiles = append(failedFiles, ip)
 				return
 			}
 
@@ -154,7 +160,7 @@ func main() {
 			globalRecords = append(globalRecords, ocsv)
 			mutex.Unlock()
 
-			fmt.Printf("%v: done\n", ip)
+			fmt.Printf("%v: DONE\n", ip)
 			fmt.Printf("%v: %v\n", ip, ocsv)
 		}(ip, pos)
 	}
@@ -162,5 +168,14 @@ func main() {
 
 	writeCSV("output.csv", globalRecords)
 	fmt.Printf("Write in csv file.\n")
-	fmt.Printf("Success!\n")
+
+	if failedFiles != nil {
+		fmt.Println("\n\nSome image was failed...")
+		for _, ip := range failedFiles {
+			fmt.Println(ip)
+		}
+	} else {
+		fmt.Println("\n\nALL SUCCESSFUL!")
+	}
+
 }
