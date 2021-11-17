@@ -105,6 +105,21 @@ func getAllSongTitle() ([]PRSKSong, error) {
 	return songs, nil
 }
 
+func searchStringWithEDFromPRSKSong(inStr string, inPRSKSongs []PRSKSong) (PRSKSong, int, error) {
+	minED := 1000000
+	correct := PRSKSong{}
+	for _, ps := range inPRSKSongs {
+		if calcED := calcEditDistance(inStr, ps.Title); calcED < minED {
+			minED = calcED
+			correct = ps
+		}
+		if minED == 0 {
+			break
+		}
+	}
+	return correct, minED, nil
+}
+
 func searchStringWithED(inStr string, inStrList []string) (string, int, error) {
 	minED := 1000000
 	correct := ""

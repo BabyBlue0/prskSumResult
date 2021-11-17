@@ -69,15 +69,19 @@ func getPRSKScores(imagePath string, pos PRSKPositionOfData) (PRSKScore, error) 
 	//fmt.Printf("%v: get miss\n", imagePath)
 
 	//calc edit distance and decided title by ed
-	var allsongs []string
-	for _, s := range globalAllSongs {
-		allsongs = append(allsongs, s.Title)
-	}
-	title, ed, _ := searchStringWithED(score.Name, allsongs)
+	psSong, ed, _ := searchStringWithEDFromPRSKSong(score.Name, globalAllSongs)
 	if ed > 5 {
 		return PRSKScore{}, fmt.Errorf("Too high edit distance!!!\nsocre.Name: %v,\tED: %v\n", score.Name, ed)
 	}
-	score.Name = title
+	//check numbers between combos of total and maximum combos
+	sumOfCombos := (int(score.Perfect+score.Great+score.Good+score.Bad+score.Miss))
+	if score.Level == "EXPERT" && psSong.ComboEx != sumOfCombos{
+		return PRSKScore{}, fmt.Errorf("Not Matching the number of combos\nsum(score): %v,\tmaxCombo(%v): %v\n", sumOfCombos, psSong.Title, psSong.ComboEx )
+	} else if score.Level == "Master" && psSong.ComboM != sumOfCombos{
+		return PRSKScore{}, fmt.Errorf("Not Matching the number of combos\nsum(score): %v,\tmaxCombo(%v): %v\n", sumOfCombos, psSong.Title, psSong.ComboEx )
+	}
+
+	score.Name = psSong.Title
 	//fmt.Printf("%v: get title\n", imagePath)
 	return score, nil
 }
@@ -155,6 +159,7 @@ func main() {
 			}
 			ocsv.FName = path.Base(ip)
 
+			
 			//append records of csv
 			mutex.Lock()
 			globalRecords = append(globalRecords, ocsv)
